@@ -229,6 +229,7 @@ def selenium_cookies_to_requests(driver) -> requests.Session:
         sess.cookies.set(c["name"], c.get("value", ""), domain=domain, path=c.get("path", "/"))
     return sess
 
+#1234556
 
 def download_via_requests_with_cookies(session: requests.Session, attachment_href: str, referer: str, save_path: str):
     url = urljoin(BBS_BASE, attachment_href) if not attachment_href.lower().startswith("http") else attachment_href

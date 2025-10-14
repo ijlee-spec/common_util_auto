@@ -11,6 +11,10 @@ eng_page:
   engin_id: secureadmin
   engin_pass: secure1818##
 
+bbs:
+  bbs_id: ijlee
+  bbs_pass: dbsafer00@
+
 logs:
   - path: /usr/local/apache/logs/catalina.out
     tag: catalina
