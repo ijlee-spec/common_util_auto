@@ -1,0 +1,105 @@
+ssh:
+  host: 10.77.166.34
+  hostname: 10.77.166.34
+  port: 7795
+  username: root
+  password: "Aegisqjrmcpr25!"
+  engin_id : secureadmin
+  engin_pass : secure1818##
+
+eng_page:  
+  engin_id: secureadmin
+  engin_pass: secure1818##
+
+logs:
+  - path: /usr/local/apache/logs/catalina.out
+    tag: catalina
+  - path: /usr/local/apache/logs/saferuas/saferuas.log
+    tag: saferuas
+  - path: /usr/local/apache/logs/webreport/ozreport/ozreport.log
+    tag: ozreport
+
+rules:
+  - pattern: "OutOfMemoryError"
+    category: "RUNTIME"
+    severity: "HIGH"
+    action: "ABORT"
+    note: "JVM 메모리 고갈: -Xmx 상향, 누수 점검"
+  - pattern: "NullPointerException"
+    category: "APP"
+    severity: "MEDIUM"
+    action: "RETRY"
+    note: "NPE: 설정/빈 주입/프로퍼티 경로 확인"
+  - pattern: "Can not get database connection info"
+    category: "DB"
+    severity: "MEDIUM"
+    action: "RETRY"
+    note: "DB 연결정보 로딩 실패: 환경변수/프로퍼티 키 확인"
+  - pattern: "java\\.net\\.ConnectException"
+    category: "NETWORK"
+    severity: "MEDIUM"
+    action: "RETRY"
+    note: "연결 거부/포트/방화벽 확인"
+  - pattern: "SocketTimeoutException"
+    category: "NETWORK"
+    severity: "MEDIUM"
+    action: "RETRY"
+    note: "타임아웃 발생"
+  - pattern: "SSLHandshakeException"
+    category: "TLS"
+    severity: "HIGH"
+    action: "ABORT"
+    note: "인증서/프로토콜/암호군 불일치"
+  - pattern: "ORA-\\d+"
+    category: "DB"
+    severity: "MEDIUM"
+    action: "RETRY"
+    note: "Oracle 에러: 코드별 원인 확인"
+  - pattern: "HTTP Status 5\\d\\d|\\b500\\b"
+    category: "SERVER"
+    severity: "MEDIUM"
+    action: "RETRY"
+    note: "서버 5xx 응답"
+
+analysis:
+  recent_minutes: 3         # 최근 4분간 로그만 분석
+  max_lines_per_file: 100000
+
+noise_filter:
+  enabled: true
+  require_level: ["ERROR","WARN","FATAL"]   # 이 레벨 단어가 1회 이상 있어야 에러 후보
+  keywords:
+    - "OutOfMemoryError"
+    - "SSLHandshakeException"
+    - "ORA-"
+    - "HTTP Status 5"
+  require_hits: 1
+
+keywords:
+  - "Exception"
+  - "ERROR"
+  - "SEVERE"
+  - "FATAL"
+  - "OutOfMemoryError"
+  - "SSLHandshakeException"
+  - "ORA-"
+  - "HTTP Status 5"
+
+llm:
+  enabled: true
+  endpoint: "http://127.0.0.1:11434/v1/chat/completions"   # OpenAI 호환 엔드포인트(로컬/사내 게이트웨이)
+  model: "llama3.1:8b"
+  api_key: ""         # 필요 시 입력
+  timeout_sec: 8
+  max_chars: 8000     # LLM에 전달할 최대 문자수
+
+logs:
+  - tag: catalina
+    path: /usr/local/apache/logs/catalina.out
+  - tag: saferuas
+    path: /usr/local/apache/logs/saferuas/saferuas.log
+  - tag: webreport
+    path: /usr/local/apache/logs/webreport/webreport.log
+    candidates:
+      - /usr/local/apache/logs/webreport/webreport.log
+      - /usr/local/apache/logs/webreport/ozreport.log

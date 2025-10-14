@@ -1,0 +1,12 @@
+﻿__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.log
+.vscode/
+Thumbs.db
+Desktop.ini
+chromedriver-win64/
+screenshots/
+config.local.yaml
