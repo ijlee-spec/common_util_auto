@@ -65,11 +65,18 @@ def preprocess_image_for_ocr(image_path, output_path="preprocessed.png"):
     cv2.imwrite(output_path, thresh)
     return output_path
 
+SHOW_OCR_TEXT = False  # True면 전체 OCR 텍스트 출력, False면 헤더만 출력
+
 def contains_ip_labels(image_path, ip_threshold=1):
     img = Image.open(image_path)
     text = pytesseract.image_to_string(img, config="--psm 6")
-    # 인코딩 이슈 방지용 정규화 + 치환 후 출력
-    log_message(f"[오즈뷰어 인식 텍스트]\n{_sanitize_unicode(text)}")
+
+    # 🔈 OCR 텍스트 출력 제어
+    if SHOW_OCR_TEXT:
+        log_message(f"[오즈뷰어 인식 텍스트~!]\n{_sanitize_unicode(text)}")
+    else:
+        log_message("[오즈뷰어 인식 텍스트~!]")
+
     ip_matches = re.findall(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', text)
     log_message(f"📌 감지된 IP 주소 수: {len(ip_matches)} - {ip_matches}")
     return len(ip_matches) >= ip_threshold
@@ -189,7 +196,7 @@ finally:
         service.stop()
     except Exception:
         pass
-    # 항상 에러 로그 스크립트 실행
+   
     try:
         runpy.run_path(str(pathlib.Path(__file__).with_name("err_log_safer.py")), run_name="__main__")
     except Exception as e:

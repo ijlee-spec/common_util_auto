@@ -57,11 +57,11 @@ def resolve_pnp_otp(cfg: dict):
 # =========================
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s"
+    format="%(message)s"
 )
 def log_message(msg):
     print(f"[LOG] {msg}")
-    logging.info(msg)
+  
 
 # =========================
 # 3) 유틸/헬퍼

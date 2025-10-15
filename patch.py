@@ -17,6 +17,32 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+import runpy, pathlib
+# --- 콘솔 실시간 출력 보장 (ADD THIS BLOCK NEAR THE TOP) ---
+import sys, logging, builtins, functools, os
+
+# 1) 파이썬 레벨 버퍼링 해제
+os.environ.setdefault("PYTHONUNBUFFERED", "1")
+try:
+    # Python 3.7+ 가능
+    sys.stdout.reconfigure(line_buffering=True, write_through=True)
+    sys.stderr.reconfigure(line_buffering=True, write_through=True)
+except Exception:
+    pass
+
+# 2) logging을 stdout으로 강제 + 기존 핸들러 초기화
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[logging.StreamHandler(stream=sys.stdout)],
+    force=True,
+)
+
+# 3) print 기본값을 flush=True로 재정의 (runpy로 불러오는 모듈에도 효력 有)
+_builtin_print = builtins.print
+builtins.print = functools.partial(_builtin_print, flush=True)
+# --- end ---
+print(f" ======= COMMON_UTIL 자동화 테스트 시작 =======")
 
 # ======================= 사용자 설정 =======================
 PAGE_URL = "https://bbs.pnpsecure.com/showthread.php?tid=12342"
@@ -34,7 +60,6 @@ REMOTE_DIR = "/root/patch_commonutil"
 # 파일명 패턴 (버전 1~2자리 허용)
 FNAME_RE = re.compile(r"COMMON_UTIL_V3\.\d{1,2}_(\d{8})\.tgz", re.IGNORECASE)
 FNAME_FULL_RE = re.compile(r"(COMMON_UTIL_V3\.\d{1,2}_\d{8}\.tgz)", re.IGNORECASE)
-
 
 def load_ssh_config(config_path: str):
     if not os.path.isabs(config_path):
@@ -96,7 +121,7 @@ def bypass_ssl_interstitial(driver, timeout=10):
 
 
 def login_to_bbs(driver):
-    print("[로그인] BBS 로그인 시도")
+    print("[LOG] [로그인] BBS 로그인 시도")
     driver.get(BBS_LOGIN_URL)
     bypass_ssl_interstitial(driver)
     try:
@@ -105,7 +130,7 @@ def login_to_bbs(driver):
         driver.find_element(By.NAME, "password").send_keys(BBS_PASS)
         driver.find_element(By.CSS_SELECTOR, "input.button").click()
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-        print("[로그인] 로그인 성공")
+        print("[LOG] [로그인] 로그인 성공")
     except Exception as e:
         raise RuntimeError(f"BBS 로그인 실패: {e}")
 
@@ -229,8 +254,6 @@ def selenium_cookies_to_requests(driver) -> requests.Session:
         sess.cookies.set(c["name"], c.get("value", ""), domain=domain, path=c.get("path", "/"))
     return sess
 
-#1234556
-
 def download_via_requests_with_cookies(session: requests.Session, attachment_href: str, referer: str, save_path: str):
     url = urljoin(BBS_BASE, attachment_href) if not attachment_href.lower().startswith("http") else attachment_href
     headers = {"Referer": referer, "User-Agent": "Mozilla/5.0"}
@@ -282,11 +305,11 @@ def read_version_info(ssh: paramiko.SSHClient):
 
 def main():
     # 0) SSH 설정
-    print(f"[0/10] SSH 설정 로드: {CONFIG_YAML}")
+    print(f"[LOG] [0/10] SSH 설정 로드: {CONFIG_YAML}")
     ssh_cfg = load_ssh_config(CONFIG_YAML)
 
     # 1) SSH 접속 & (패치 전) 현재 버전 출력
-    print(f"[1/10] SSH 접속: {ssh_cfg['host']}:{ssh_cfg['port']} (user={ssh_cfg['username']})")
+    print(f"[LOG] [1/10] SSH 접속: {ssh_cfg['host']}:{ssh_cfg['port']} (user={ssh_cfg['username']})")
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(
@@ -299,7 +322,7 @@ def main():
     )
 
     try:
-        print("[2/10] (패치 전) 현재 버전 확인 (/usr/local/apache/bin/version.sh)")
+        print("[LOG] [2/10] (패치 전) 현재 버전 확인 (/usr/local/apache/bin/version.sh)")
         before_server, before_jvm = read_version_info(ssh)
         print("\n==== BEFORE ====")
         print(before_server)
@@ -307,7 +330,7 @@ def main():
         print("===============")
 
         # 2) 브라우저/로그인 및 다운로드
-        print(f"[3/10] 브라우저로 페이지 접속 → {PAGE_URL}")
+        print(f"[LOG] [3/10] 브라우저로 페이지 접속 → {PAGE_URL}")
         os.makedirs(DOWNLOAD_DIR, exist_ok=True)
         driver = make_chrome_driver(DOWNLOAD_DIR)
 
@@ -323,7 +346,7 @@ def main():
             print(f"  - 링크: {latest['href'] or '(직접 다운로드 링크 아님)'}")
 
             # 5) 클릭 → 새 탭 전환 처리
-            print(f"[4/10] 다운로드 시작 (Chrome 자동 저장 폴더: {DOWNLOAD_DIR})")
+            print(f"[LOG] [4/10] 다운로드 시작 (Chrome 자동 저장 폴더: {DOWNLOAD_DIR})")
             start_time = time.time()
             before_handles = set(driver.window_handles)
             latest["elem"].click()
@@ -361,7 +384,7 @@ def main():
                 pass
 
         # 8) SSH 업로드/설치
-        print(f"[5/10] 원격 디렉터리 준비 → {REMOTE_DIR}")
+        print(f"[LOG] [5/10] 원격 디렉터리 준비 → {REMOTE_DIR}")
         ssh_exec(ssh, f"mkdir -p {REMOTE_DIR}")
 
         print(f"  - 업로드: {local_file} → {REMOTE_DIR}/")
@@ -375,22 +398,22 @@ def main():
         print(f"  - 압축 해제: {remote_fname} → {extract_dir}")
         ssh_exec(ssh, f"bash -lc 'cd {REMOTE_DIR} && tar -xzf {remote_fname}'")
 
-        print("[6/10] 서비스 정지 (pnp_statistics, pnpweb)")
+        print("[LOG] [6/10] 서비스 정지 (pnp_statistics, pnpweb)")
         ssh_exec(ssh, "bash -lc 'cd /dbsafer && ./pnp_statistics stop || true'")
         time.sleep(4)
         ssh_exec(ssh, "bash -lc 'service pnpweb stop || true'")
         time.sleep(5)
 
-        print("[7/10] 설치 실행: source ./install.sh -upgrade")
+        print("[LOG] [7/10] 설치 실행: source ./install.sh -upgrade")
         ssh_exec(ssh, f"bash -lc 'cd {extract_dir} && source ./install.sh -upgrade'")
         time.sleep(3)
 
-        print("[8/10] 서비스 시작: pnpweb start")
+        print("[LOG] [8/10] 서비스 시작: pnpweb start")
         ssh_exec(ssh, "bash -lc 'service pnpweb start || true'")
         time.sleep(4)
 
         # 9) (패치 후) 버전 재확인
-        print("[9/10] (패치 후) 버전 확인 (/usr/local/apache/bin/version.sh)")
+        print("[LOG] [9/10] (패치 후) 버전 확인 (/usr/local/apache/bin/version.sh)")
         after_server, after_jvm = read_version_info(ssh)
 
         # 10) 결과 출력
@@ -398,7 +421,7 @@ def main():
         print(after_server)
         print(after_jvm)
         print("========================")
-        print("COMMON_UTIL 패치 완료")
+        print("[LOG] COMMON_UTIL 패치 완료")
 
     finally:
         ssh.close()
@@ -406,3 +429,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+runpy.run_path(str(pathlib.Path(__file__).with_name("saferuas_engineer_page.py")), run_name="__main__")
