@@ -303,6 +303,115 @@ def read_version_info(ssh: paramiko.SSHClient):
     return server_version or "Server version: (파싱 실패)", jvm_version or "JVM Version: (파싱 실패)"
 
 
+# ====== [추가] 페이지 2로 이동 후, 현재 페이지에서만 최신 링크 찾기 ======
+def goto_page_two(driver, wait_sec: float = 2.0):
+    """
+    PAGE_URL(현재 탭)에서 페이지네이션 영역을 탐색 후 '2' 페이지를 클릭.
+    없으면 조용히 패스(기존 1페이지 유지).
+    """
+    try:
+        WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
+    except TimeoutException:
+        return
+
+    # pagination 컨테이너 탐색
+    try:
+        pagers = driver.find_elements(By.CSS_SELECTOR, ".pagination a.pagination_page, .pagination a.pagination_next")
+    except Exception:
+        pagers = []
+
+    # 우선 숫자 '2'를 찾고, 없으면 class='pagination_next'를 활용
+    target = None
+    for a in pagers:
+        txt = (a.text or "").strip()
+        if txt == "2":
+            target = a
+            break
+
+    if not target:
+        nexts = [a for a in pagers if (a.get_attribute("class") or "").strip().find("pagination_next") >= 0]
+        if nexts:
+            target = nexts[0]
+
+    if target:
+        target.click()
+        time.sleep(wait_sec)  # 요청: 약 2초 대기
+        # 페이지 전환 대기 (URL 쿼리 page=2 등장 또는 pagination_current=2 확인)
+        try:
+            WebDriverWait(driver, 8).until(
+                lambda d: ("page=2" in d.current_url) or
+                          any(((e.text or "").strip() == "2")
+                              for e in d.find_elements(By.CSS_SELECTOR, ".pagination .pagination_current"))
+            )
+        except Exception:
+            pass
+
+
+def find_latest_link_on_current_page(driver):
+    """
+    '현재 탭의 현재 페이지'에서만 COMMON_UTIL_V3.*.tgz를 스캔하여
+    가장 최신(파일명 내 날짜 기준, yyyymmdd 최대) 항목을 반환.
+    반환 dict: {elem, text, href, filename, yyyymmdd}
+    """
+    try:
+        WebDriverWait(driver, 15).until(EC.presence_of_all_elements_located((By.TAG_NAME, "a")))
+    except TimeoutException:
+        pass
+
+    links = driver.find_elements(By.TAG_NAME, "a")
+    candidates = []
+    for a in links:
+        try:
+            text = (a.text or "").strip()
+            href = (a.get_attribute("href") or "").strip()
+        except Exception:
+            continue
+        m_txt = FNAME_RE.search(text)
+        m_href = FNAME_RE.search(href)
+        m = m_txt or m_href
+        if m:
+            yyyymmdd = m.group(1)
+            filename = m.group(0)
+            candidates.append({
+                "elem": a,
+                "text": text,
+                "href": href,
+                "filename": filename,
+                "yyyymmdd": yyyymmdd
+            })
+
+    if candidates:
+        candidates.sort(key=lambda x: x["yyyymmdd"], reverse=True)
+        return candidates[0]
+
+    # 앵커 텍스트/링크에 바로 안 보이면 page source로 재탐색(현재 페이지 한정)
+    html = driver.page_source or ""
+    full_hits = list(set(FNAME_FULL_RE.findall(html)))
+    if full_hits:
+        parsed = []
+        for fn in full_hits:
+            m = FNAME_RE.search(fn)
+            if m:
+                parsed.append((fn, m.group(1)))
+        parsed.sort(key=lambda t: t[1], reverse=True)
+        if parsed:
+            best_name, best_date = parsed[0]
+            for a in driver.find_elements(By.TAG_NAME, "a"):
+                t = (a.text or "")
+                h = (a.get_attribute("href") or "")
+                if best_name in t or best_name in h:
+                    return {
+                        "elem": a,
+                        "text": t,
+                        "href": h,
+                        "filename": best_name,
+                        "yyyymmdd": best_date
+                    }
+
+    raise RuntimeError("현재 페이지에서 COMMON_UTIL_V3.*.tgz 링크를 찾지 못했습니다.")
+# ====== [추가 끝] ======
+
+
 def main():
     # 0) SSH 설정
     print(f"[LOG] [0/10] SSH 설정 로드: {CONFIG_YAML}")
@@ -340,12 +449,17 @@ def main():
             # 3-1) 기존 파일 스태시
             _ = move_old_downloads(DOWNLOAD_DIR)
 
-            # 4) 최신 링크 식별
-            latest = find_latest_link(driver)
+            # === [변경] 첫 페이지 진입 후 '2' 페이지로 이동 ===
+            driver.get(PAGE_URL)
+            bypass_ssl_interstitial(driver)
+            goto_page_two(driver, wait_sec=2.0)  # 페이지 2 클릭 + 2초 대기
+
+            # === [변경] 현재 페이지에서 최신 링크 탐색 ===
+            latest = find_latest_link_on_current_page(driver)
             print(f"  - 최신판: {latest['filename']} (날짜: {latest['yyyymmdd']})")
             print(f"  - 링크: {latest['href'] or '(직접 다운로드 링크 아님)'}")
 
-            # 5) 클릭 → 새 탭 전환 처리
+            # 이하 동일 (클릭 → 새 탭 전환 → 다운로드 감지 or 쿠키 이관 직하 GET)
             print(f"[LOG] [4/10] 다운로드 시작 (Chrome 자동 저장 폴더: {DOWNLOAD_DIR})")
             start_time = time.time()
             before_handles = set(driver.window_handles)
@@ -357,7 +471,6 @@ def main():
             if new_handles:
                 driver.switch_to.window(new_handles[-1])
 
-            # 6) 실제 새 다운로드 대기
             try:
                 local_file = wait_for_actual_new_download(DOWNLOAD_DIR, start_time, timeout_sec=900)
                 print(f"  - 다운로드 완료(첫 시도): {os.path.basename(local_file)} ({os.path.getsize(local_file)/(1024*1024):.2f} MB)")
@@ -365,7 +478,8 @@ def main():
                 print("  - 클릭 다운로드 감지 실패 → 쿠키 이관 후 직접 GET 재시도")
                 sess = selenium_cookies_to_requests(driver)
                 tentative = os.path.join(DOWNLOAD_DIR, latest["filename"])
-                local_file = download_via_requests_with_cookies(sess, latest["href"], PAGE_URL, tentative)
+                # [변경] referer를 PAGE_URL 대신 현재 URL(driver.current_url)로
+                local_file = download_via_requests_with_cookies(sess, latest["href"], driver.current_url, tentative)
                 print(f"  - 직접 다운로드 완료: {os.path.basename(local_file)} ({os.path.getsize(local_file)/(1024*1024):.2f} MB)")
 
             # 7) 파일명 검증(날짜 불일치 시 재다운로드)
@@ -374,7 +488,8 @@ def main():
                 print(f"  - 경고: 받은 파일명이 최신 날짜와 불일치 → 쿠키 이관 후 재다운로드 강제")
                 sess = selenium_cookies_to_requests(driver)
                 tentative = os.path.join(DOWNLOAD_DIR, latest["filename"])
-                local_file = download_via_requests_with_cookies(sess, latest["href"], PAGE_URL, tentative)
+                # [변경] referer를 현재 URL로 유지
+                local_file = download_via_requests_with_cookies(sess, latest["href"], driver.current_url, tentative)
                 print(f"  - 재다운로드 완료: {os.path.basename(local_file)} ({os.path.getsize(local_file)/(1024*1024):.2f} MB)")
 
         finally:
@@ -430,4 +545,4 @@ def main():
 if __name__ == "__main__":
     main()
 
-runpy.run_path(str(pathlib.Path(__file__).with_name("saferuas_engineer_page.py")), run_name="__main__")
+runpy.run_path(str(pathlib.Path(__file__).with_name("dbscanner.py")), run_name="__main__")

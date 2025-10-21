@@ -38,9 +38,10 @@ SSH_CONF = {
 
 LOG_PATHS = [
     "/usr/local/apache/logs/saferuas/saferuas.log",
-    "/usr/local/apache/logs/decide3/decide.log",
+    "/home/dbscanner/log/dbscanner.log",
     "/usr/local/apache/logs/webreport/webreport.log",
     "/usr/local/apache/logs/catalina.out", 
+
 ]
 
 DESKTOP = os.path.join(os.path.expanduser("~"), "Desktop")
