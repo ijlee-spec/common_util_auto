@@ -198,7 +198,7 @@ finally:
         pass
    
     try:
-        runpy.run_path(str(pathlib.Path(__file__).with_name("err_log_safer.py")), run_name="__main__")
+        runpy.run_path(str(pathlib.Path(__file__).with_name("err_log.py")), run_name="__main__")
     except Exception as e:
         log_message(f"err_log_safer.py 실행 실패: {e}")
 

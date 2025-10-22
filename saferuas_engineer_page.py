@@ -229,5 +229,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-runpy.run_path(str(pathlib.Path(__file__).with_name("pcAsisst_login.py")), run_name="__main__")
+runpy.run_path(str(pathlib.Path(__file__).with_name("pcassist_login.py")), run_name="__main__")
 

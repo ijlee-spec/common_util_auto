@@ -166,4 +166,4 @@ if __name__ == "__main__":
     main()
 
 
-runpy.run_path(str(pathlib.Path(__file__).with_name("report_test_ma.py")), run_name="__main__")
+runpy.run_path(str(pathlib.Path(__file__).with_name("report.py")), run_name="__main__")

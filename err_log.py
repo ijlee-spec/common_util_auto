@@ -45,7 +45,7 @@ LOG_PATHS = [
 ]
 
 DESKTOP = os.path.join(os.path.expanduser("~"), "Desktop")
-EXCEL_PATH = os.path.join(DESKTOP, "SAFERUAS TCL V 2.5.3_20250721.xlsx")
+EXCEL_PATH = os.path.join(DESKTOP, "COMMON_UTIL TCL V 2.5.7_20251021.xlsx")
 
 WINDOW_SECONDS = 180  # 최근 3분
 
