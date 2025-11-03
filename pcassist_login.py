@@ -21,8 +21,8 @@ TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 CAP_X, CAP_Y, CAP_W, CAP_H = 1600, 160, 150, 60
 
 # 3) 디버깅용 이미지 저장 위치
-SAVE_RAW = r"C:\Users\ijlee\Downloads\otp_area_debug.png"
-SAVE_BW  = r"C:\Users\ijlee\Downloads\otp_processed_bw.png"
+SAVE_RAW = r"C:\Users\ijlee\AppData\Local\Programs\Python\2025\auto\screens\otp_area_debug.png"
+SAVE_BW = r"C:\Users\ijlee\AppData\Local\Programs\Python\2025\auto\screens\otp_processed_bw.png"
 
 # 4) DBSAFER AGENT 실행 파일 경로
 APP_PATH = r"C:\Program Files (x86)\PNPSECURE\DBSAFER AGENT\DBSaferAgt.exe"

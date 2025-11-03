@@ -140,11 +140,11 @@ try:
 
     # 날짜 설정
     today = datetime.date.today().strftime('%Y-%m-%d')
-    for el_id, val in (('strDate', '2025-08-26'), ('endDate', '2025-08-26')):
+    for el_id, val in (('strDate', '2025-10-23'), ('endDate', today)):
         el = wait.until(EC.presence_of_element_located((By.ID, el_id)))
         el.clear()
         el.send_keys(val)
-    log_message(f"날짜 설정 완료: 2025-08-26 ~ 2025-08-26 (오늘: {today})")
+    log_message(f"날짜 설정 완료: (오늘: {today})")
     time.sleep(0.5)
 
     # 조회 버튼 클릭

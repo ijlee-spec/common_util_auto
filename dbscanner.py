@@ -107,7 +107,7 @@ def switch_to_frame_by_id(driver, frame_id, timeout=15):
         EC.frame_to_be_available_and_switch_to_it((By.ID, frame_id))
     )
     log(f"프레임 전환: #{frame_id}")
-
+    time.sleep(1)
 def switch_into_scanconf_iframe_if_any(driver, wait, timeout=10):
     """스캔설정 목록 iframe(#scanConfListIfrm) 진입."""
     driver.switch_to.default_content()
@@ -320,7 +320,7 @@ def go_to_private_result_general(driver, wait):
             safe_js_click(driver, header)
         accept_alert_if_present(driver, "스캔결과(alert)", timeout=1)
         log("메뉴: '스캔결과' 섹션 선택")
-        time.sleep(0.2)
+        time.sleep(2)
     except Exception as e:
         log(f"경고: '스캔결과' 섹션 클릭 실패(무시 가능) -> {e}")
 
@@ -335,7 +335,7 @@ def go_to_private_result_general(driver, wait):
             safe_js_click(driver, sec)
         accept_alert_if_present(driver, "개인정보 스캔결과(alert)", timeout=1)
         log("메뉴: '개인정보 스캔결과' 선택")
-        time.sleep(0.2)
+        time.sleep(2)
     except Exception as e:
         log(f"경고: '개인정보 스캔결과' 클릭 실패(무시 가능) -> {e}")
 
@@ -389,6 +389,7 @@ def click_top_detail_label_in_popup(driver, wait, label_text: str):
         safe_js_click(driver, span_el)
 
     log(f"상세 그리드(팝업): 맨 위 '{label_text}' 클릭 완료")
+    time.sleep(1)
     return True
 
 def validate_sample_phone_data_from_detail_popup(driver, wait, expected_profile_name="휴대폰"):
@@ -401,7 +402,7 @@ def validate_sample_phone_data_from_detail_popup(driver, wait, expected_profile_
     profile = driver.execute_script("return document.querySelector('#profileName')?.value || '';")
 
     log(f"샘플 profileName='{profile}', bytes={len(result)}")
-
+    
     if profile.strip() != expected_profile_name:
         log(f"[FAIL] profileName 불일치: '{profile}' (기대: '{expected_profile_name}')")
         return False

@@ -26,6 +26,7 @@ import paramiko
 from openpyxl import load_workbook, Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment
+import runpy, pathlib
 
 # ======================= 사용자/환경 설정 =======================
 SSH_CONF = {
@@ -45,7 +46,7 @@ LOG_PATHS = [
 ]
 
 DESKTOP = os.path.join(os.path.expanduser("~"), "Desktop")
-EXCEL_PATH = os.path.join(DESKTOP, "COMMON_UTIL TCL V 2.5.7_20251021.xlsx")
+EXCEL_PATH = os.path.join(DESKTOP, "COMMON_UTIL TCL V 2.5.7_20251024.xlsx")
 
 WINDOW_SECONDS = 180  # 최근 3분
 
@@ -395,3 +396,5 @@ if __name__ == "__main__":
         print(f"[ERR] SSH 연결 실패: {e}")
     except Exception as e:
         print(f"[ERR] 예외 발생: {e}")
+
+runpy.run_path(str(pathlib.Path(__file__).with_name("excel.py")), run_name="__main__")
