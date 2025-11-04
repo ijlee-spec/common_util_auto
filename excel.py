@@ -18,17 +18,18 @@ if target_sheet not in wb.sheetnames:
 
 ws = wb[target_sheet]
 
-# H열(열 인덱스 8) H7 ~ H53에 "O" 입력
-for r in range(7, 54):   # 7..53
+# H열(열 인덱스 8) H7 ~ H53에 "O" 입력 (미구현 단계)
+for r in range(7, 54):   # 7..53 # 조건 세부로직 업데이트 예정 
     ws.cell(row=r, column=8, value="O")
+ 
 
 wb.save(excel_path)
 print(f"DB 접속완료")
-# 세부로직 업데이트 예정 
+# 세부로직 업데이트 예정 (미구현 단계)
 print(f"웹제품 DB  값 체크 중")
-# 세부로직 업데이트 예정 
+# 세부로직 업데이트 예정 (미구현 단계)
 print(f"웹제품 DB 값 확인 완료 ")
-# 세부로직 업데이트 예정 
+# 세부로직 업데이트 예정 (미구현 단계)
 time.sleep(3)
 print(f" ======= COMMON_UTIL 자동화 테스트 종료 =======")
 
